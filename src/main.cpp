@@ -145,9 +145,18 @@ void projectBendingConstraints() {
     // TODO
 }
 
-void projectPullingConstraints() {
-    // TODO
+void projectPullingConstraints()
+{
+    if (clickedVertex < 0) return;
+
+    double w = params_.pullingWeight;
+
+    Eigen::RowVector3d targetPos = mousePos.transpose();
+    Eigen::RowVector3d current   = Q.row(clickedVertex);
+
+    Q.row(clickedVertex) = w * targetPos + (1.0 - w) * current;
 }
+
 
 void simulateOneStep()
 {
