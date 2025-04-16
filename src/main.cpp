@@ -87,10 +87,97 @@ void initSimulation()
     updateRenderGeometry();
 }
 
+void projectPinConstraints()
+{
+    double w = params_.pinWeight;
+    for (int v : pinnedVerts) {
+        Eigen::RowVector3d pinnedPos = origQ.row(v); 
+        Q.row(v) = w * pinnedPos + (1.0 - w) * Q.row(v);
+    }
+}
+
+void projectStretchConstraints()
+{
+    double w = params_.stretchWeight; 
+
+    for (int f = 0; f < F.rows(); f++) {
+        int v0 = F(f, 0);
+        int v1 = F(f, 1);
+        int v2 = F(f, 2);
+
+        Eigen::Vector3d x0 = Q.row(v0);
+        Eigen::Vector3d x1 = Q.row(v1);
+        Eigen::Vector3d x2 = Q.row(v2);
+
+        Eigen::Vector3d r0 = origQ.row(v0);
+        Eigen::Vector3d r1 = origQ.row(v1);
+        Eigen::Vector3d r2 = origQ.row(v2);
+
+        Eigen::Vector3d c  = (x0 + x1 + x2) / 3.0;
+        Eigen::Vector3d c0 = (r0 + r1 + r2) / 3.0;
+
+        Eigen::Matrix3d A, B;
+        A.row(0) = x0 - c;  
+        A.row(1) = x1 - c;  
+        A.row(2) = x2 - c;
+
+        B.row(0) = r0 - c0;
+        B.row(1) = r1 - c0;
+        B.row(2) = r2 - c0;
+
+        Eigen::Matrix3d M = A.transpose() * B; 
+        Eigen::JacobiSVD<Eigen::Matrix3d> svd(M, Eigen::ComputeFullU | Eigen::ComputeFullV);
+        Eigen::Matrix3d U = svd.matrixU();
+        Eigen::Matrix3d V = svd.matrixV();
+        Eigen::Matrix3d R = U * V.transpose();
+
+        Eigen::Vector3d new0 = c + R * (r0 - c0);
+        Eigen::Vector3d new1 = c + R * (r1 - c0);
+        Eigen::Vector3d new2 = c + R * (r2 - c0);
+
+        Q.row(v0) = w * new0 + (1.0 - w) * x0;
+        Q.row(v1) = w * new1 + (1.0 - w) * x1;
+        Q.row(v2) = w * new2 + (1.0 - w) * x2;
+    }
+}
+
+void projectBendingConstraints() {
+    // TODO
+}
+
+void projectPullingConstraints() {
+    // TODO
+}
 
 void simulateOneStep()
 {
-    // TODO: step time, apply gravity, enforce constraints
+    Eigen::MatrixXd Qold = Q;
+
+    Q += params_.timeStep * Qdot;
+
+    for (int iter = 0; iter < params_.constraintIters; iter++) {
+
+        if (params_.pinEnabled) projectPinConstraints();
+        if (params_.stretchEnabled) projectStretchConstraints();
+        if (params_.bendingEnabled) projectBendingConstraints();
+        if (params_.pullingEnabled) projectPullingConstraints();
+    }
+
+    Qdot = (Q - Qold) / params_.timeStep;
+
+    if (params_.gravityEnabled) {
+        for (int i = 0; i < Q.rows(); i++) {
+            bool pinned = false;
+            if (params_.pinEnabled) {
+                for (int pv : pinnedVerts) {
+                    if (pv == i) { pinned = true; break; }
+                }
+            }
+            if (!pinned) {
+                Qdot(i,1) += params_.timeStep * params_.gravityG;
+            }
+        }
+    }
 }
 
 void callback()
