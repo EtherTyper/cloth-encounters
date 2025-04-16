@@ -141,8 +141,69 @@ void projectStretchConstraints()
     }
 }
 
-void projectBendingConstraints() {
-    // TODO
+void projectBendingConstraints()
+{
+    double w = params_.stretchWeight;
+
+    for (int f = 0; f < F.rows(); f++) {
+        int v0 = F(f, 0);
+        int v1 = F(f, 1);
+        int v2 = F(f, 2);
+
+        for (int f2 = f + 1; f < F.rows(); f++) {
+            // TODO: Check if adjacent.
+            if (true) {
+                continue;
+            }
+
+            // TODO: Find four unique vertex indices.
+            int quad_v0;
+            int quad_v1;
+            int quad_v2;
+            int quad_v3;
+
+            Eigen::Vector3d x0 = Q.row(quad_v0);
+            Eigen::Vector3d x1 = Q.row(quad_v1);
+            Eigen::Vector3d x2 = Q.row(quad_v2);
+            Eigen::Vector3d x3 = Q.row(quad_v3);
+
+            Eigen::Vector3d r0 = origQ.row(quad_v0);
+            Eigen::Vector3d r1 = origQ.row(quad_v1);
+            Eigen::Vector3d r2 = origQ.row(quad_v2);
+            Eigen::Vector3d r3 = origQ.row(quad_v3);
+
+            Eigen::Vector3d c = (x0 + x1 + x2 + x3) / 3.0;
+            Eigen::Vector3d c0 = (r0 + r1 + r2 + r3) / 3.0;
+
+            Eigen::MatrixXd A, B;
+            A.resize(4, 3);
+            A.row(0) = x0 - c;
+            A.row(1) = x1 - c;
+            A.row(2) = x2 - c;
+            A.row(2) = x3 - c;
+
+            B.resize(4, 3);
+            B.row(0) = r0 - c0;
+            B.row(1) = r1 - c0;
+            B.row(2) = r2 - c0;
+            B.row(2) = r3 - c0;
+
+            Eigen::Matrix3d M = A.transpose() * B;
+            Eigen::JacobiSVD<Eigen::Matrix3d> svd(M, Eigen::ComputeFullU | Eigen::ComputeFullV);
+            Eigen::Matrix3d U = svd.matrixU();
+            Eigen::Matrix3d V = svd.matrixV();
+            Eigen::Matrix3d R = U * V.transpose();
+
+            Eigen::Vector3d new0 = c + R * (r0 - c0);
+            Eigen::Vector3d new1 = c + R * (r1 - c0);
+            Eigen::Vector3d new2 = c + R * (r2 - c0);
+            Eigen::Vector3d new3 = c + R * (r3 - c0);
+
+            Q.row(quad_v0) = w * new0 + (1.0 - w) * x0;
+            Q.row(quad_v1) = w * new1 + (1.0 - w) * x1;
+            Q.row(quad_v2) = w * new2 + (1.0 - w) * x2;
+            Q.row(quad_v3) = w * new3 + (1.0 - w) * x2;
+        }
 }
 
 void projectPullingConstraints()
