@@ -27,6 +27,8 @@ Eigen::MatrixXi F;
 
 std::vector<int> pinnedVerts;
 
+std::vector<std::vector<int>> facesWithVertex;
+
 
 int clickedVertex;
 double clickedDepth;
@@ -83,6 +85,17 @@ void initSimulation()
     
 
     clickedVertex = -1;
+
+    facesWithVertex = std::vector<std::vector<int>>();
+    facesWithVertex.resize(origQ.rows());
+    for (int i = 0; i < origQ.rows(); i++) {
+        facesWithVertex[i] = std::vector<int>();
+    }
+    for (int f = 0; f < F.rows(); f++) {
+        facesWithVertex[F(f, 0)].push_back(f);
+        facesWithVertex[F(f, 1)].push_back(f);
+        facesWithVertex[F(f, 2)].push_back(f);
+    }
     
     updateRenderGeometry();
 }
@@ -144,17 +157,6 @@ void projectStretchConstraints()
 void projectBendingConstraints()
 {
     double w = params_.bendingWeight;
-
-    std::vector<std::vector<int>> facesWithVertex = std::vector<std::vector<int>>();
-    facesWithVertex.resize(origQ.rows());
-    for (int i = 0; i < origQ.rows(); i++) {
-        facesWithVertex[i] = std::vector<int>();
-    }
-    for (int f = 0; f < F.rows(); f++) {
-        facesWithVertex[F(f, 0)].push_back(f);
-        facesWithVertex[F(f, 1)].push_back(f);
-        facesWithVertex[F(f, 2)].push_back(f);
-    }
 
     for (int f = 0; f < F.rows(); f++) {
         int v0 = F(f, 0);
@@ -219,7 +221,7 @@ void projectBendingConstraints()
             Q.row(quad_v0) = w * new0 + (1.0 - w) * x0;
             Q.row(quad_v1) = w * new1 + (1.0 - w) * x1;
             Q.row(quad_v2) = w * new2 + (1.0 - w) * x2;
-            Q.row(quad_v3) = w * new3 + (1.0 - w) * x2;
+            Q.row(quad_v3) = w * new3 + (1.0 - w) * x3;
         }
     }
 }
@@ -239,6 +241,7 @@ void projectPullingConstraints()
 
 void simulateOneStep()
 {
+    // TODO remove this when sufficiently debugged
     running_ = false;
 
     Eigen::MatrixXd Qold = Q;
