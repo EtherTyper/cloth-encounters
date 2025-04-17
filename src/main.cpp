@@ -163,10 +163,10 @@ void projectBendingConstraints()
         int v1 = F(f, 1);
         int v2 = F(f, 2);
 
-        std::vector<int> adjacent_faces = std::vector<int>();
-        adjacent_faces.insert(adjacent_faces.end(), facesWithVertex[F(f, 0)].cbegin(), facesWithVertex[F(f, 0)].cend());
-        adjacent_faces.insert(adjacent_faces.end(), facesWithVertex[F(f, 1)].cbegin(), facesWithVertex[F(f, 1)].cend());
-        adjacent_faces.insert(adjacent_faces.end(), facesWithVertex[F(f, 2)].cbegin(), facesWithVertex[F(f, 2)].cend());
+        std::set<int> adjacent_faces = std::set<int>();
+        adjacent_faces.insert(facesWithVertex[F(f, 0)].cbegin(), facesWithVertex[F(f, 0)].cend());
+        adjacent_faces.insert(facesWithVertex[F(f, 1)].cbegin(), facesWithVertex[F(f, 1)].cend());
+        adjacent_faces.insert(facesWithVertex[F(f, 2)].cbegin(), facesWithVertex[F(f, 2)].cend());
 
         for (auto f2 : adjacent_faces) {
             std::set<int> vertices = { v0, v1, v2, F(f2, 0), F(f2, 1), F(f2, 2) };
@@ -199,13 +199,13 @@ void projectBendingConstraints()
             A.row(0) = x0 - c;
             A.row(1) = x1 - c;
             A.row(2) = x2 - c;
-            A.row(2) = x3 - c;
+            A.row(3) = x3 - c;
 
             B.resize(4, 3);
             B.row(0) = r0 - c0;
             B.row(1) = r1 - c0;
             B.row(2) = r2 - c0;
-            B.row(2) = r3 - c0;
+            B.row(3) = r3 - c0;
 
             Eigen::Matrix3d M = A.transpose() * B;
             Eigen::JacobiSVD<Eigen::Matrix3d> svd(M, Eigen::ComputeFullU | Eigen::ComputeFullV);
@@ -242,7 +242,7 @@ void projectPullingConstraints()
 void simulateOneStep()
 {
     // TODO remove this when sufficiently debugged
-    running_ = false;
+    // running_ = false;
 
     Eigen::MatrixXd Qold = Q;
 
