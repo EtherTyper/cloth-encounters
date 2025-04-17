@@ -143,24 +143,41 @@ void projectStretchConstraints()
 
 void projectBendingConstraints()
 {
-    double w = params_.stretchWeight;
+    double w = params_.bendingWeight;
+
+    std::vector<std::vector<int>> facesWithVertex = std::vector<std::vector<int>>();
+    facesWithVertex.resize(origQ.rows());
+    for (int i = 0; i < origQ.rows(); i++) {
+        facesWithVertex[i] = std::vector<int>();
+    }
+    for (int f = 0; f < F.rows(); f++) {
+        facesWithVertex[F(f, 0)].push_back(f);
+        facesWithVertex[F(f, 1)].push_back(f);
+        facesWithVertex[F(f, 2)].push_back(f);
+    }
 
     for (int f = 0; f < F.rows(); f++) {
         int v0 = F(f, 0);
         int v1 = F(f, 1);
         int v2 = F(f, 2);
 
-        for (int f2 = f + 1; f < F.rows(); f++) {
-            // TODO: Check if adjacent.
-            if (true) {
+        std::vector<int> adjacent_faces = std::vector<int>();
+        adjacent_faces.insert(adjacent_faces.end(), facesWithVertex[F(f, 0)].cbegin(), facesWithVertex[F(f, 0)].cend());
+        adjacent_faces.insert(adjacent_faces.end(), facesWithVertex[F(f, 1)].cbegin(), facesWithVertex[F(f, 1)].cend());
+        adjacent_faces.insert(adjacent_faces.end(), facesWithVertex[F(f, 2)].cbegin(), facesWithVertex[F(f, 2)].cend());
+
+        for (auto f2 : adjacent_faces) {
+            std::set<int> vertices = { v0, v1, v2, F(f2, 0), F(f2, 1), F(f2, 2) };
+
+            if (vertices.size() != 4) {
                 continue;
             }
 
-            // TODO: Find four unique vertex indices.
-            int quad_v0;
-            int quad_v1;
-            int quad_v2;
-            int quad_v3;
+            auto iterator = vertices.cbegin();
+            int quad_v0 = *iterator++;
+            int quad_v1 = *iterator++;
+            int quad_v2 = *iterator++;
+            int quad_v3 = *iterator;
 
             Eigen::Vector3d x0 = Q.row(quad_v0);
             Eigen::Vector3d x1 = Q.row(quad_v1);
@@ -172,8 +189,8 @@ void projectBendingConstraints()
             Eigen::Vector3d r2 = origQ.row(quad_v2);
             Eigen::Vector3d r3 = origQ.row(quad_v3);
 
-            Eigen::Vector3d c = (x0 + x1 + x2 + x3) / 3.0;
-            Eigen::Vector3d c0 = (r0 + r1 + r2 + r3) / 3.0;
+            Eigen::Vector3d c = (x0 + x1 + x2 + x3) / 4.0;
+            Eigen::Vector3d c0 = (r0 + r1 + r2 + r3) / 4.0;
 
             Eigen::MatrixXd A, B;
             A.resize(4, 3);
@@ -204,6 +221,7 @@ void projectBendingConstraints()
             Q.row(quad_v2) = w * new2 + (1.0 - w) * x2;
             Q.row(quad_v3) = w * new3 + (1.0 - w) * x2;
         }
+    }
 }
 
 void projectPullingConstraints()
@@ -221,6 +239,8 @@ void projectPullingConstraints()
 
 void simulateOneStep()
 {
+    running_ = false;
+
     Eigen::MatrixXd Qold = Q;
 
     Q += params_.timeStep * Qdot;
@@ -248,6 +268,8 @@ void simulateOneStep()
             }
         }
     }
+
+    std::cout << "Finished" << std::endl;
 }
 
 void callback()
