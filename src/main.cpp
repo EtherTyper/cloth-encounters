@@ -272,7 +272,6 @@ void simulateOneStep()
         }
     }
 
-    std::cout << "Finished" << std::endl;
 }
 
 void callback()
